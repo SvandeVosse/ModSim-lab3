@@ -14,6 +14,7 @@ except NameError:
     # Python 3
     str_types = (bytes, str)
 
+
 def get_measurement(model, attr):
     """Returns the value of a given measurement attribute for a given model.
 
@@ -29,8 +30,7 @@ def get_measurement(model, attr):
         # If the passed callable is a method of the model we
         # call it directly, otherwise we also pass the model as
         # argument to the function.
-        if hasattr(model, attr.__name__) and \
-           getattr(model, attr.__name__) == attr:
+        if hasattr(model, attr.__name__) and getattr(model, attr.__name__) == attr:
             return attr()
         else:
             return attr(model)
@@ -40,8 +40,16 @@ def get_measurement(model, attr):
             m = m()
         return m
 
-def paramsweep(model, repetitions, param_space, measure_attrs, max_iter=0,
-               csv_base_filename=None, measure_interval=1):
+
+def paramsweep(
+    model,
+    repetitions,
+    param_space,
+    measure_attrs,
+    max_iter=0,
+    csv_base_filename=None,
+    measure_interval=1,
+):
     """Performs a parameter sweep over Model instance `model', setting the
     parameters defined in the dictionary `param_space', each combination
     `repetitions' times, and outputs all measurements as defined by
@@ -80,8 +88,9 @@ def paramsweep(model, repetitions, param_space, measure_attrs, max_iter=0,
 
     param_list = list(param_space.items())
     param_names = [i[0] for i in param_list]
-    param_values = (i[1] if isinstance(i[1], accepted_iterables) else (i[1],)
-                    for i in param_list)
+    param_values = (
+        i[1] if isinstance(i[1], accepted_iterables) else (i[1],) for i in param_list
+    )
 
     combinations = tuple(itertools.product(*param_values))
     measurements = [[] for a in measure_attrs]
@@ -90,8 +99,10 @@ def paramsweep(model, repetitions, param_space, measure_attrs, max_iter=0,
         # Set current parameter values to the model
         for pn, pv in zip(param_names, vals):
             if pn not in model.params:
-                raise ValueError(("param '%s' not a parameter of model (known "
-                        "params: %s)") % (pn, ', '.join(model.params)))
+                raise ValueError(
+                    ("param '%s' not a parameter of model (known " "params: %s)")
+                    % (pn, ", ".join(model.params))
+                )
             setattr(model, pn, pv)
 
         # Perform simulations requested amount of times with current params.
@@ -103,8 +114,9 @@ def paramsweep(model, repetitions, param_space, measure_attrs, max_iter=0,
                     m.append([get_measurement(model, attr)])
             # Run the model (recording measurements) until model indicates
             # simulation has finished or we reach the max number of iters.
-            while model.step() is not True and \
-                    (not max_iter or current_iter < max_iter):
+            while model.step() is not True and (
+                not max_iter or current_iter < max_iter
+            ):
                 current_iter += 1
                 if measure_interval and current_iter % measure_interval == 0:
                     for i, attr in enumerate(measure_attrs):
@@ -117,7 +129,7 @@ def paramsweep(model, repetitions, param_space, measure_attrs, max_iter=0,
     if csv_base_filename is not None:
         # Dump results to csv files: one per measurement, row per run
         for i, m in enumerate(measurements):
-            with open('%s_%d.csv' % (csv_base_filename, i), 'w') as f:
+            with open("%s_%d.csv" % (csv_base_filename, i), "w") as f:
                 writer = csv.writer(f)
                 writer.writerow(param_names + ["rep_num"])
                 for j, n in enumerate(m):

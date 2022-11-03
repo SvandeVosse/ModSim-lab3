@@ -27,6 +27,9 @@ class CASim(Model):
         self.make_param("height", 50)
         self.make_param("rule", 30, setter=self.setter_rule)
 
+        self.cycle_length = self.height  # minimal cycle length (for aperiodic patterns)
+        self.homogeneous = False
+
     def setter_rule(self, val):
         """Setter for the rule parameter, clipping its value between 0 and the
         maximum possible rule number."""
@@ -67,6 +70,8 @@ class CASim(Model):
         the cells in the first row. Values should be between 0 and k."""
 
         init_row = np.random.randint(0, self.k, self.width, dtype=int)
+        # init_row = np.zeros(self.width, dtype=int)
+        # init_row[int(len(init_row) / 2)] = self.k - 1
 
         return init_row
 
@@ -98,11 +103,33 @@ class CASim(Model):
         plt.axis("image")
         plt.title("t = %d" % self.t)
 
+    def find_cycle_length(self):
+        self.cycle_length = self.height
+        i = self.height - 2
+        periodic = False
+        while periodic == False and i >= 0:
+            if list(self.config[-1]) == list(self.config[i]):
+                self.cycle_length = self.height - 1 - i
+                periodic = True
+            i -= 1
+
+    def check_homogeneity(self):
+        self.homogeneous = all(x == self.config[-1, 0] for x in self.config[-1])
+
     def step(self):
         """Performs a single step of the simulation by advancing time (and thus
         row) and applying the rule to determine the state of the cells."""
         self.t += 1
         if self.t >= self.height:
+            self.find_cycle_length()
+            self.check_homogeneity()
+            if self.homogeneous == False:
+                homo_string = "and it is not homogeneous."
+            else:
+                homo_string = "and it is homogeneous."
+            # print(
+            #     f"cycle length of rule {self.rule} is {self.cycle_length}", homo_string
+            # )
             return True
 
         for patch in range(self.width):
@@ -120,6 +147,24 @@ class CASim(Model):
 if __name__ == "__main__":
     sim = CASim()
     from pyics import GUI
+    from pyics import paramsweep
+
+    param_space = {
+        "rule": list(
+            range(
+                getattr(sim, "k") ** getattr(sim, "k") ** (2 * getattr(sim, "r") + 1),
+            )
+        )
+    }
+
+    paramsweep(
+        sim,
+        10,
+        param_space=param_space,
+        measure_attrs=["cycle_length", "homogeneous"],
+        measure_interval=0,
+        csv_base_filename="classes",
+    )
 
     cx = GUI(sim)
     cx.start()
