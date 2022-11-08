@@ -157,13 +157,13 @@ if __name__ == "__main__":
         )
     }
 
-    paramsweep(
+    measurements = paramsweep(
         sim,
         10,
         param_space=param_space,
         measure_attrs=["cycle_length", "homogeneous"],
         measure_interval=0,
-        csv_base_filename="classes",
+        csv_base_filename="classes_10",
     )
 
     cx = GUI(sim)
