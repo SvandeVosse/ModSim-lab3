@@ -244,3 +244,4 @@ fig, ax = plot_CL_wolfram(
 )
 
 plt.savefig("cl_wclass_iter_10.png")
+plt.show()

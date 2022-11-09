@@ -1,3 +1,8 @@
+#
+# Code for running CA simulations.
+# In order to analyse and show results, plot_cycle_length.py should be run.
+#
+
 import numpy as np
 
 from pyics import Model
