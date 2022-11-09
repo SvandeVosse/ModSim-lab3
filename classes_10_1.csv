@@ -1043,10 +1043,10 @@ rule,rep_num,homogeneous
 104,1,False
 104,2,False
 104,3,False
-104,4,True
+104,4,False
 104,5,False
 104,6,False
-104,7,True
+104,7,False
 104,8,False
 104,9,False
 105,0,False
@@ -2332,10 +2332,10 @@ rule,rep_num,homogeneous
 233,0,False
 233,1,False
 233,2,False
-233,3,True
+233,3,False
 233,4,False
 233,5,False
-233,6,False
+233,6,True
 233,7,False
 233,8,False
 233,9,True
@@ -2373,7 +2373,7 @@ rule,rep_num,homogeneous
 237,1,False
 237,2,False
 237,3,False
-237,4,False
+237,4,True
 237,5,False
 237,6,False
 237,7,False
