@@ -114,13 +114,17 @@ class CASim(Model):
             i -= 1
 
     def check_homogeneity(self):
-        self.homogeneous = all(x == self.config[-1, 0] for x in self.config[-1])
+        self.homogeneous = all(
+            x == self.config[-1, 0]
+            for x in np.reshape(self.config[-2:], [2 * self.config.shape[1], 1])
+        )
 
     def step(self):
         """Performs a single step of the simulation by advancing time (and thus
         row) and applying the rule to determine the state of the cells."""
         self.t += 1
         if self.t >= self.height:
+            # update cycle length and homogeneity
             self.find_cycle_length()
             self.check_homogeneity()
             if self.homogeneous == False:
@@ -156,6 +160,9 @@ if __name__ == "__main__":
             )
         )
     }
+
+    sim.width = 50
+    sim.height = 4 * sim.width
 
     measurements = paramsweep(
         sim,
