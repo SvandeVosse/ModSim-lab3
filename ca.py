@@ -50,9 +50,12 @@ class CASim(Model):
         [0, ..., 0, 1, 0, 2, 1] (length 27). This means that for example
         [2, 2, 2] -> 0 and [0, 0, 1] -> 2."""
 
+        # determine the rule in k-base
         size = self.k ** (2 * self.r + 1)
-        rule = np.zeros([size], dtype=int)
         k_base_n = decimal_to_base_k(self.rule, self.k)
+
+        # set rule_set as array according to k-base rule
+        rule = np.zeros([size], dtype=int)
         rule[-len(k_base_n) :] = k_base_n
         self.rule_set = rule
 
@@ -62,10 +65,15 @@ class CASim(Model):
         The input state will be an array of 2r+1 items between 0 and k, the
         neighbourhood which the state of the new cell depends on."""
 
+        # transform input array to string
         string_inp = ""
         for i in inp:
             string_inp += str(i)
+
+        # transform input configuration to decimal base
         deci_base_inp = int(string_inp, self.k)
+
+        # determine next state according to the rule_set
         new_state = np.flip(self.rule_set)[deci_base_inp]
 
         return new_state
@@ -74,9 +82,14 @@ class CASim(Model):
         """Returns an array of length `width' with the initial state for each of
         the cells in the first row. Values should be between 0 and k."""
 
-        init_row = np.random.randint(0, self.k, self.width, dtype=int)
-        # init_row = np.zeros(self.width, dtype=int)
-        # init_row[int(len(init_row) / 2)] = self.k - 1
+        single_seed = False
+
+        # create initial row as a single seed of state k in the middle or as a random configuration
+        if single_seed == True:
+            init_row = np.zeros(self.width, dtype=int)
+            init_row[int(len(init_row) / 2)] = self.k - 1
+        else:
+            init_row = np.random.randint(0, self.k, self.width, dtype=int)
 
         return init_row
 
@@ -109,16 +122,28 @@ class CASim(Model):
         plt.title("t = %d" % self.t)
 
     def find_cycle_length(self):
+        """Find cycle length by checking if last rule occurs before in the configuration."""
+
+        # if no periodicity is found, the height of the configuration is defined to be the cycle length.
         self.cycle_length = self.height
+
+        # start comparing the last row to the second to last row.
         i = self.height - 2
+
+        # periodicity is False until proven True
         periodic = False
         while periodic == False and i >= 0:
+            # check if rows are the same
             if list(self.config[-1]) == list(self.config[i]):
                 self.cycle_length = self.height - 1 - i
                 periodic = True
+            # update row number to check
             i -= 1
 
     def check_homogeneity(self):
+        """Check homogeneity of the configuration by checking if the last two rows consist of all the same values."""
+
+        # check if the configuration is homogeneous.
         self.homogeneous = all(
             x == self.config[-1, 0]
             for x in np.reshape(self.config[-2:], [2 * self.config.shape[1], 1])
@@ -154,29 +179,45 @@ class CASim(Model):
 
 
 if __name__ == "__main__":
+
+    # make CA simulation instance
     sim = CASim()
+
+    # import relevant modules
     from pyics import GUI
     from pyics import paramsweep
 
-    param_space = {
-        "rule": list(
-            range(
-                getattr(sim, "k") ** getattr(sim, "k") ** (2 * getattr(sim, "r") + 1),
+    # indicate if parameter measurements should be run
+    paramsimulate = False
+
+    if paramsimulate == True:
+
+        # determine parameter space to simulate
+        param_space = {
+            "rule": list(
+                range(
+                    getattr(sim, "k")
+                    ** getattr(sim, "k")
+                    ** (2 * getattr(sim, "r") + 1),
+                )
             )
+        }
+
+        # set the simulation parameters
+        sim.width = 50
+        sim.height = 4 * sim.width
+        N_sim = 10
+
+        # perform simulations and save measurements on given csv base filename
+        measurements = paramsweep(
+            sim,
+            N_sim,
+            param_space=param_space,
+            measure_attrs=["cycle_length", "homogeneous"],
+            measure_interval=0,
+            csv_base_filename="classes_" + str(N_sim),
         )
-    }
 
-    sim.width = 50
-    sim.height = 4 * sim.width
-
-    measurements = paramsweep(
-        sim,
-        10,
-        param_space=param_space,
-        measure_attrs=["cycle_length", "homogeneous"],
-        measure_interval=0,
-        csv_base_filename="classes_10",
-    )
-
+    # start up GUI
     cx = GUI(sim)
     cx.start()

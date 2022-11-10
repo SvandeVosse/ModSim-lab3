@@ -126,17 +126,6 @@ def paramsweep(
                 for m, attr in zip(measurements, measure_attrs):
                     m.append([get_measurement(model, attr)])
 
-    # if csv_base_filename is not None:
-    #     # Dump results to csv files: one per measurement, row per run
-    #     for i, m in enumerate(measurements):
-    #         with open("%s_%d.csv" % (csv_base_filename, i), "w") as f:
-    #             writer = csv.writer(f)
-    #             writer.writerow(param_names + ["rep_num"])
-    #             for j, n in enumerate(m):
-    #                 params = combinations[j // repetitions]
-    #                 rep = j % repetitions
-    #                 writer.writerow(list(params) + [rep, None] + n)
-
     if csv_base_filename is not None:
         # Dump results to csv files: one per measurement, row per run
         for i, m in enumerate(measurements):
