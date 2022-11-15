@@ -153,6 +153,7 @@ class GUI:
         )
         self.status.pack(side=TOP, fill=X, padx=1, pady=1, expand=NO)
 
+        # Run button
         self.runPauseString = StringVar()
         self.runPauseString.set("Run")
         self.buttonRun = Button(
@@ -163,21 +164,25 @@ class GUI:
             command=self.runEvent,
         )
         self.buttonRun.pack(side=TOP, padx=5, pady=5)
-
         self.showHelp(
             self.buttonRun, "Runs the simulation (or pauses the running simulation)"
         )
+
+        # Step once button
         self.buttonStep = Button(
             self.frameSim, width=30, height=2, text="Step Once", command=self.stepOnce
         )
         self.buttonStep.pack(side=TOP, padx=5, pady=5)
         self.showHelp(self.buttonStep, "Steps the simulation only once")
+
+        # Reset button
         self.buttonReset = Button(
             self.frameSim, width=30, height=2, text="Reset", command=self.resetModel
         )
         self.buttonReset.pack(side=TOP, padx=5, pady=5)
         self.showHelp(self.buttonReset, "Resets the simulation")
 
+        # parameter number entries
         for param in self.model.params:
             var_text = self.param_gui_names.get(param, param)
             can = Canvas(self.frameSim)
@@ -198,6 +203,34 @@ class GUI:
             ent.pack(side="left")
             can.pack(side="top")
             self.param_entries[param] = ent
+
+        # Langton rule button
+        self.buttonLangtonTable = Button(
+            self.frameSim,
+            width=30,
+            height=2,
+            text="Rule from langton: table walk through",
+            command=self.buildLangtonRuleTable,
+        )
+        self.buttonLangtonTable.pack(side=TOP, padx=5, pady=5)
+        self.showHelp(
+            self.buttonLangtonTable, "Build rule from given Langton parameter"
+        )
+
+        # Langton rule button
+        self.buttonLangtonRandom = Button(
+            self.frameSim,
+            width=30,
+            height=2,
+            text="Rule from langton: random table",
+            command=self.buildLangtonRuleRandom,
+        )
+        self.buttonLangtonRandom.pack(side=TOP, padx=5, pady=5)
+        self.showHelp(
+            self.buttonLangtonRandom, "Build rule from given Langton parameter"
+        )
+
+        # Save parameters button
         if self.param_entries:
             self.buttonSaveParameters = Button(
                 self.frameSim,
@@ -214,6 +247,8 @@ class GUI:
                 + "A model reset might be required.",
             )
             self.buttonSaveParameters.pack(side="top", padx=5, pady=5)
+
+            # Save params and reset button
             self.buttonSaveParametersAndReset = Button(
                 self.frameSim,
                 width=50,
@@ -227,6 +262,7 @@ class GUI:
             )
             self.buttonSaveParametersAndReset.pack(side="top", padx=5, pady=5)
 
+        # step size slider
         can = Canvas(self.frameSim)
         lab = Label(
             can,
@@ -257,6 +293,7 @@ class GUI:
         self.stepScale.pack(side="left")
         can.pack(side="top")
 
+        # step visualization slider
         can = Canvas(self.frameSim)
         lab = Label(
             can,
@@ -299,12 +336,16 @@ class GUI:
     def changeStepDelay(self, val):
         self.timeInterval = int(val)
 
-    def saveParametersCmd(self):
+    def saveParametersCmd(self, langtonset=False):
         for param, entry in self.param_entries.items():
             val = entry.get()
             if isinstance(getattr(self.model, param), bool):
                 val = bool(int(val))
             setattr(self.model, param, val)
+        # determine langton parameter based on current rule if langton has not been set itself
+        if langtonset == False:
+            self.model.determine_langton()
+        for param, entry in self.param_entries.items():
             # See if the model changed the value (e.g. clipping)
             new_val = getattr(self.model, param)
             if isinstance(new_val, bool):
@@ -314,7 +355,31 @@ class GUI:
         self.setStatusStr("New parameter values have been set")
 
     def saveParametersAndResetCmd(self):
+        self.saveParametersCmd(langtonset=False)
+        self.resetModel()
+
+    def buildLangtonRuleRandom(self):
+        self.saveParametersCmd(langtonset=True)
+        self.model.build_langton_rule_set(method="RandomTable")
+        for param, entry in self.param_entries.items():
+            new_val = getattr(self.model, param)
+            if isinstance(new_val, bool):
+                new_val = int(new_val)
+            entry.delete(0, END)
+            entry.insert(0, str(new_val))
+        self.setStatusStr("New parameter values have been set")
+        self.resetModel()
+
+    def buildLangtonRuleTable(self):
         self.saveParametersCmd()
+        self.model.build_langton_rule_set(method="TableWalkThrough")
+        for param, entry in self.param_entries.items():
+            new_val = getattr(self.model, param)
+            if isinstance(new_val, bool):
+                new_val = int(new_val)
+            entry.delete(0, END)
+            entry.insert(0, str(new_val))
+        self.setStatusStr("New parameter values have been set")
         self.resetModel()
 
     def runEvent(self):

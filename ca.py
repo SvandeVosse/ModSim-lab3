@@ -28,6 +28,7 @@ class CASim(Model):
 
         self.make_param("r", 1)
         self.make_param("k", 2)
+        self.make_param("langton", "-")
         self.make_param("width", 50)
         self.make_param("height", 50)
         self.make_param("rule", 30, setter=self.setter_rule)
@@ -58,6 +59,87 @@ class CASim(Model):
         rule = np.zeros([size], dtype=int)
         rule[-len(k_base_n) :] = k_base_n
         self.rule_set = rule
+
+    def build_langton_rule_set(self, method):
+
+        try:
+            langton = float(self.langton)
+
+            if langton > 1:
+                langton = 1
+                self.langton = "1.0"
+            if langton < 0:
+                langton = 0
+                self.langton = "0.0"
+
+            if method == "TableWalkThrough":
+                # self.rule = 50
+                # print("TWT")
+                # print(self.rule)
+
+                # creates empty rule set
+                size = self.k ** (2 * self.r + 1)
+                delta = np.zeros(size, dtype=int)
+
+                # amount of rules flipped
+                flip_size = int(langton * size)
+
+                for i in range(flip_size):
+                    # gives indices of all zeros in the rule set
+                    ind_list = [i for i, e in enumerate(delta) if e == 0]
+
+                    # selects random index from the list of indices
+                    ind = np.random.randint(len(ind_list))
+
+                    # flips the zero with that index to another value between 1 and k
+                    delta[ind_list[ind]] = np.random.randint(self.k - 1) + 1
+
+                # # calculate rule
+                # for index, character in enumerate(delta):
+                #     rule += int(character) * self.k ** index
+
+                # make string from rule
+                rule_string = ""
+
+                for item in delta:
+                    rule_string += str(item)
+
+                # convert string to decimal rule number
+                rule_number = int(rule_string, self.k)
+                self.rule = rule_number
+
+            if method == "RandomTable":
+
+                delta = np.zeros(self.k ** (2 * self.r + 1), dtype=int)
+                for i in range(len(delta)):
+                    g = np.random.rand()
+                    if g > langton:
+                        # quiescent state is set to 0
+                        delta[i] = int(0)
+                    else:
+                        # range from 1 to k so the quiescent state 0 is never assigned
+                        delta[i] = np.random.randint(1, self.k)
+
+                # make string from rule
+                rule_string = ""
+
+                for item in delta:
+                    rule_string += str(item)
+
+                # convert string to decimal rule number
+                rule_number = int(rule_string, self.k)
+                self.rule = rule_number
+
+        except:
+            self.langton = "-"
+            print("Give Langton parameter between 0 and 1")
+
+        self.build_rule_set()
+
+    def determine_langton(self):
+        self.build_rule_set()
+        zeros = np.where(self.rule_set == 0)
+        self.langton = 1 - len(zeros[0]) / len(self.rule_set)
 
     def check_rule(self, inp):
         """Returns the new state based on the input states.
