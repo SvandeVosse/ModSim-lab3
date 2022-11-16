@@ -33,6 +33,8 @@ class CASim(Model):
         self.make_param("height", 50)
         self.make_param("rule", 30, setter=self.setter_rule)
 
+        self.cell_Shannon = None
+        self.row_Shannon = None
         self.cycle_length = self.height  # minimal cycle length (for aperiodic patterns)
         self.homogeneous = False
 
@@ -224,6 +226,27 @@ class CASim(Model):
             for x in np.reshape(self.config[-2:], [2 * self.config.shape[1], 1])
         )
 
+    def calculate_Shannon(self):
+
+        # calculate cell entropy
+        ent = 0
+        for row in self.config:
+            for i in range(self.k):
+                value_list = [x for x in row if x == i]
+                p = len(value_list) / len(row)
+                if p != 0:
+                    ent -= p * np.log(p) / np.log(self.k)
+
+        ent_gem = ent / len(self.config)
+        self.cell_Shannon = ent_gem
+
+        # calculate row entropy
+        rows, counts = np.unique(self.config, axis=0, return_counts=True)
+        probabilities = counts / len(self.config)
+        self.row_Shannon = np.sum(
+            -probabilities * np.log(probabilities) / np.log(self.k)
+        )
+
     def step(self):
         """Performs a single step of the simulation by advancing time (and thus
         row) and applying the rule to determine the state of the cells."""
@@ -232,13 +255,12 @@ class CASim(Model):
             # update cycle length and homogeneity
             self.find_cycle_length()
             self.check_homogeneity()
-            if self.homogeneous == False:
-                homo_string = "and it is not homogeneous."
-            else:
-                homo_string = "and it is homogeneous."
-            # print(
-            #     f"cycle length of rule {self.rule} is {self.cycle_length}", homo_string
-            # )
+
+            # update Shannon entropy of the cells and of the rows
+            self.calculate_Shannon()
+            self.determine_langton()
+            # print(self.cell_Shannon, self.row_Shannon)
+
             return True
 
         for patch in range(self.width):
@@ -263,7 +285,7 @@ if __name__ == "__main__":
     from pyics import paramsweep
 
     # indicate if parameter measurements should be run
-    paramsimulate = False
+    paramsimulate = True
 
     if paramsimulate == True:
 
@@ -281,16 +303,16 @@ if __name__ == "__main__":
         # set the simulation parameters
         sim.width = 50
         sim.height = 4 * sim.width
-        N_sim = 10
+        N_sim = 1
 
         # perform simulations and save measurements on given csv base filename
         measurements = paramsweep(
             sim,
             N_sim,
             param_space=param_space,
-            measure_attrs=["cycle_length", "homogeneous"],
+            measure_attrs=["cell_Shannon", "row_Shannon", "langton"],
             measure_interval=0,
-            csv_base_filename="classes_" + str(N_sim),
+            csv_base_filename="ShannonLangton_" + str(N_sim),
         )
 
     # start up GUI
