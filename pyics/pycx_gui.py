@@ -371,7 +371,7 @@ class GUI:
         self.resetModel()
 
     def buildLangtonRuleTable(self):
-        self.saveParametersCmd()
+        self.saveParametersCmd(langtonset=True)
         self.model.build_langton_rule_set(method="TableWalkThrough")
         for param, entry in self.param_entries.items():
             new_val = getattr(self.model, param)

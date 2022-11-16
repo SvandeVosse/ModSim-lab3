@@ -73,9 +73,6 @@ class CASim(Model):
                 self.langton = "0.0"
 
             if method == "TableWalkThrough":
-                # self.rule = 50
-                # print("TWT")
-                # print(self.rule)
 
                 # creates empty rule set
                 size = self.k ** (2 * self.r + 1)
@@ -93,10 +90,6 @@ class CASim(Model):
 
                     # flips the zero with that index to another value between 1 and k
                     delta[ind_list[ind]] = np.random.randint(self.k - 1) + 1
-
-                # # calculate rule
-                # for index, character in enumerate(delta):
-                #     rule += int(character) * self.k ** index
 
                 # make string from rule
                 rule_string = ""
