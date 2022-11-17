@@ -65,7 +65,7 @@ class CASim(Model):
         self.rule_set = rule
 
     def build_langton_rule_set(self, method):
-
+        """calculates the rule number based on a given langton parameter"""
         try:
             langton = float(self.langton)
 
@@ -282,8 +282,6 @@ class CASim(Model):
             self.calculate_Shannon()
             self.determine_langton()
 
-            print(self.local_config_Shannon)
-
             return True
 
         for patch in range(self.width):
@@ -313,12 +311,12 @@ if __name__ == "__main__":
     if paramsimulate == True:
 
         # determine parameter space to simulate
-        param_space = {"langton": list(np.linspace(0, 1, 50))}
+        param_space = {"langton": list(np.linspace(0, 1, 100))}
 
         # set the simulation parameters
         sim.width = 50
         sim.height = 4 * sim.width
-        N_sim = 1
+        N_sim = 100
 
         # perform simulations and save measurements on given csv base filename
         measurements = paramsweep(

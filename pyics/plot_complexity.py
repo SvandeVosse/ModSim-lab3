@@ -11,27 +11,29 @@ import pandas as pd
 def plot_Shannon(
     rules, langton, cell_Shannon, row_Shannon, local_Shannon, wolfram_classes
 ):
+    """plots the shannon entropy of a rule as a function of the langton parameter."""
 
-    fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=[15, 15])
+    fig, (ax1, ax2, ax4) = plt.subplots(1, 3, figsize=[20, 8])
 
     for wclass in set(wolfram_classes):
 
+        # looks up rules belonging to a certain wolfram class
         class_rules = np.where(wolfram_classes == wclass)[0]
-        print(class_rules)
 
         indeces = []
+        # creates a list with indices for rules of a wolfram class
         for class_rule in class_rules:
             rule_indeces = np.where(rules == class_rule)[0]
             indeces = indeces + (list(rule_indeces))
 
-        print(f"{wclass=}")
-        print(f"{indeces=}")
-
+        # makes the lists for langton parameter values coresponding to the rules of that wolfram class
         class_langton = langton[indeces]
+        # makes the lists for entropies coresponding to the rules of that wolfram class
         class_cell_Shannon = cell_Shannon[indeces]
         class_row_Shannon = row_Shannon[indeces]
         class_local_Shannon = local_Shannon[indeces]
 
+        # scatter plot of the entropies on the y-axis and the langton parameter on the x-axis
         ax1.scatter(
             class_langton,
             class_cell_Shannon,
@@ -39,12 +41,7 @@ def plot_Shannon(
             label="class " + str(wclass),
         )
         ax2.scatter(class_langton, class_row_Shannon, s=3, label="class " + str(wclass))
-        ax3.scatter(
-            class_langton,
-            class_cell_Shannon + class_row_Shannon,
-            s=3,
-            label="class " + str(wclass),
-        )
+
         ax4.scatter(
             class_langton, class_local_Shannon, s=3, label="class " + str(wclass)
         )
@@ -57,22 +54,19 @@ def plot_Shannon(
     ax2.set_ylabel(r"Shannon entropy for rows $\bar{H}_r$")
     ax2.legend()
 
-    ax3.set_xlabel("Langton parameter $\lambda$")
-    ax3.set_ylabel(r"Shannon entropy for cells and rows $\bar{H}_{cr}$")
-    ax3.legend()
-
     ax4.set_xlabel("Langton parameter $\lambda$")
     ax4.set_ylabel(r"Shannon entropy for local configurations $\bar{H}_{loc}$")
     ax4.legend()
 
-    return fig, ((ax1, ax2), (ax3, ax4))
+    return fig, (ax1, ax2, ax4)
 
 
-rules_df = pd.read_csv("ShannonLangton_1_0.csv")
-langton_df = pd.read_csv("ShannonLangton_1_1.csv")
-cell_df = pd.read_csv("ShannonLangton_1_2.csv")
-row_df = pd.read_csv("ShannonLangton_1_3.csv")
-local_df = pd.read_csv("ShannonLangton_1_4.csv")
+rules_df = pd.read_csv("ShannonLangton_100_0.csv")
+# reads out the values for the shannon entropy calculated with different methods
+langton_df = pd.read_csv("ShannonLangton_100_1.csv")
+cell_df = pd.read_csv("ShannonLangton_100_2.csv")
+row_df = pd.read_csv("ShannonLangton_100_3.csv")
+local_df = pd.read_csv("ShannonLangton_100_4.csv")
 
 wolfram_class = pd.read_csv("rule_class_wolfram.csv")
 
@@ -82,7 +76,8 @@ cell_Shannon = cell_df["cell_Shannon"]
 row_Shannon = row_df["row_Shannon"]
 local_Shannon = local_df["local_config_Shannon"]
 
-
+# plot of rules selected on their langton parameter plotted against their shannon entropy,
+# wolfram classes are distinguished by colour.
 fig, axes = plot_Shannon(
     rules, langton, cell_Shannon, row_Shannon, local_Shannon, wolfram_class["class"]
 )
