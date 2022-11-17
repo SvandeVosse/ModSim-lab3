@@ -25,6 +25,7 @@ class CASim(Model):
         self.t = 0
         self.rule_set = []
         self.config = None
+        self.local_config_numbers = []
 
         self.make_param("r", 1)
         self.make_param("k", 2)
@@ -35,6 +36,7 @@ class CASim(Model):
 
         self.cell_Shannon = None
         self.row_Shannon = None
+        self.local_config_Shannon = None
         self.cycle_length = self.height  # minimal cycle length (for aperiodic patterns)
         self.homogeneous = False
 
@@ -149,6 +151,8 @@ class CASim(Model):
 
         # transform input configuration to decimal base
         deci_base_inp = int(string_inp, self.k)
+        if self.t > 1:
+            self.local_config_numbers.append(deci_base_inp)
 
         # determine next state according to the rule_set
         new_state = np.flip(self.rule_set)[deci_base_inp]
@@ -177,6 +181,9 @@ class CASim(Model):
         self.t = 0
         self.config = np.zeros([self.height, self.width], dtype=int)
         self.config[0, :] = self.setup_initial_row()
+        self.local_config_numbers = []
+        if self.langton != "-":
+            self.build_langton_rule_set("TableWalkThrough")
         self.build_rule_set()
 
     def draw(self):
@@ -247,10 +254,19 @@ class CASim(Model):
             -probabilities * np.log(probabilities) / np.log(self.k)
         )
 
+        # calculate local configuration entropy after initial row
+        configs, counts = np.unique(self.local_config_numbers, return_counts=True)
+        probabilities = counts / len(self.local_config_numbers)
+        self.local_config_Shannon = np.sum(
+            -probabilities * np.log(probabilities) / np.log(self.k)
+        )
+
     def step(self):
         """Performs a single step of the simulation by advancing time (and thus
         row) and applying the rule to determine the state of the cells."""
         self.t += 1
+
+        # update model attributes at the end of a run
         if self.t >= self.height:
             # update cycle length and homogeneity
             self.find_cycle_length()
@@ -259,7 +275,8 @@ class CASim(Model):
             # update Shannon entropy of the cells and of the rows
             self.calculate_Shannon()
             self.determine_langton()
-            # print(self.cell_Shannon, self.row_Shannon)
+
+            print(self.local_config_Shannon)
 
             return True
 
@@ -290,15 +307,7 @@ if __name__ == "__main__":
     if paramsimulate == True:
 
         # determine parameter space to simulate
-        param_space = {
-            "rule": list(
-                range(
-                    getattr(sim, "k")
-                    ** getattr(sim, "k")
-                    ** (2 * getattr(sim, "r") + 1),
-                )
-            )
-        }
+        param_space = {"langton": list(np.linspace(0, 1, 50))}
 
         # set the simulation parameters
         sim.width = 50
@@ -310,7 +319,13 @@ if __name__ == "__main__":
             sim,
             N_sim,
             param_space=param_space,
-            measure_attrs=["cell_Shannon", "row_Shannon", "langton"],
+            measure_attrs=[
+                "rule",
+                "langton",
+                "cell_Shannon",
+                "row_Shannon",
+                "local_config_Shannon",
+            ],
             measure_interval=0,
             csv_base_filename="ShannonLangton_" + str(N_sim),
         )
