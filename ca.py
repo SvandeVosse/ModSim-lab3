@@ -134,8 +134,12 @@ class CASim(Model):
         self.build_rule_set()
 
     def determine_langton(self):
+        """calculates the langton paramter of the current rule based on
+        how many local configurations leed to zero."""
         self.build_rule_set()
+        # gets all zeroes from rule set list
         zeros = np.where(self.rule_set == 0)
+        # calculates langton parameter
         self.langton = 1 - len(zeros[0]) / len(self.rule_set)
 
     def check_rule(self, inp):
@@ -234,6 +238,8 @@ class CASim(Model):
         )
 
     def calculate_Shannon(self):
+        """calculates the shannon entropy by computing the repetition of cells or local configurations in a row,
+        or by the repetition of rows in the total configuration."""
 
         # calculate cell entropy
         ent = 0
