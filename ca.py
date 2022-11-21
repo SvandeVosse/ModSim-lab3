@@ -33,12 +33,14 @@ class CASim(Model):
         self.make_param("width", 50)
         self.make_param("height", 50)
         self.make_param("rule", 30, setter=self.setter_rule)
+        self.make_param("density", 0.5)
 
         self.cell_Shannon = None
         self.row_Shannon = None
         self.local_config_Shannon = None
         self.cycle_length = self.height  # minimal cycle length (for aperiodic patterns)
         self.homogeneous = False
+        self.car_flow = None  # mean car flow calculated at the end of the simulation
 
     def setter_rule(self, val):
         """Setter for the rule parameter, clipping its value between 0 and the
@@ -169,12 +171,19 @@ class CASim(Model):
 
         single_seed = False
 
-        # create initial row as a single seed of state k in the middle or as a random configuration
+        # create initial row as a single seed of state k in the middle or as a random configuration with probability density
         if single_seed == True:
             init_row = np.zeros(self.width, dtype=int)
             init_row[int(len(init_row) / 2)] = self.k - 1
         else:
-            init_row = np.random.randint(0, self.k, self.width, dtype=int)
+
+            # determine probabilities for 0 and 1 where the density of the simulation is the probability for a 1
+            if self.k == 2:
+                probabilities = [1 - self.density, self.density]
+            else:
+                probabilities = list(np.ones(self.k) / self.k)
+
+            init_row = np.random.choice(self.k, self.width, p=probabilities)
 
         return init_row
 
@@ -267,6 +276,17 @@ class CASim(Model):
             -probabilities * np.log(probabilities) / np.log(self.k)
         )
 
+    def calculate_car_flow(self):
+        print("car flow")
+        print(self.config[1:, -1])
+        print(self.config[:-1, -1])
+
+        changes = np.where(self.config[1:, -1] != self.config[:-1, -1])
+        print(changes[0].size)
+
+        self.car_flow = changes[0].size / self.config.shape[0]
+        print(self.car_flow)
+
     def step(self):
         """Performs a single step of the simulation by advancing time (and thus
         row) and applying the rule to determine the state of the cells."""
@@ -281,6 +301,8 @@ class CASim(Model):
             # update Shannon entropy of the cells and of the rows
             self.calculate_Shannon()
             self.determine_langton()
+
+            self.calculate_car_flow()
 
             return True
 
@@ -306,7 +328,7 @@ if __name__ == "__main__":
     from pyics import paramsweep
 
     # indicate if parameter measurements should be run
-    paramsimulate = True
+    paramsimulate = False
 
     if paramsimulate == True:
 
