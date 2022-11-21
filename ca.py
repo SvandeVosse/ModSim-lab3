@@ -65,7 +65,7 @@ class CASim(Model):
         self.rule_set = rule
 
     def build_langton_rule_set(self, method):
-
+        """calculates the rule number based on a given langton parameter"""
         try:
             langton = float(self.langton)
 
@@ -134,8 +134,12 @@ class CASim(Model):
         self.build_rule_set()
 
     def determine_langton(self):
+        """calculates the langton paramter of the current rule based on
+        how many local configurations leed to zero."""
         self.build_rule_set()
+        # gets all zeroes from rule set list
         zeros = np.where(self.rule_set == 0)
+        # calculates langton parameter
         self.langton = 1 - len(zeros[0]) / len(self.rule_set)
 
     def check_rule(self, inp):
@@ -234,6 +238,8 @@ class CASim(Model):
         )
 
     def calculate_Shannon(self):
+        """calculates the shannon entropy by computing the repetition of cells or local configurations in a row,
+        or by the repetition of rows in the total configuration."""
 
         # calculate cell entropy
         ent = 0
@@ -276,8 +282,6 @@ class CASim(Model):
             self.calculate_Shannon()
             self.determine_langton()
 
-            print(self.local_config_Shannon)
-
             return True
 
         for patch in range(self.width):
@@ -307,12 +311,12 @@ if __name__ == "__main__":
     if paramsimulate == True:
 
         # determine parameter space to simulate
-        param_space = {"langton": list(np.linspace(0, 1, 50))}
+        param_space = {"langton": list(np.linspace(0, 1, 100))}
 
         # set the simulation parameters
         sim.width = 50
         sim.height = 4 * sim.width
-        N_sim = 1
+        N_sim = 100
 
         # perform simulations and save measurements on given csv base filename
         measurements = paramsweep(
