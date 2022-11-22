@@ -25,21 +25,14 @@ class CASim(Model):
         self.t = 0
         self.rule_set = []
         self.config = None
-        self.local_config_numbers = []
 
         self.make_param("r", 1)
         self.make_param("k", 2)
-        self.make_param("langton", "-")
         self.make_param("width", 50)
         self.make_param("height", 50)
         self.make_param("rule", 30, setter=self.setter_rule)
         self.make_param("density", 0.5)
 
-        self.cell_Shannon = None
-        self.row_Shannon = None
-        self.local_config_Shannon = None
-        self.cycle_length = self.height  # minimal cycle length (for aperiodic patterns)
-        self.homogeneous = False
         self.car_flow = None  # mean car flow calculated at the end of the simulation
 
     def setter_rule(self, val):
@@ -65,84 +58,6 @@ class CASim(Model):
         rule = np.zeros([size], dtype=int)
         rule[-len(k_base_n) :] = k_base_n
         self.rule_set = rule
-
-    def build_langton_rule_set(self, method):
-        """calculates the rule number based on a given langton parameter"""
-        try:
-            langton = float(self.langton)
-
-            if langton > 1:
-                langton = 1
-                self.langton = "1.0"
-            if langton < 0:
-                langton = 0
-                self.langton = "0.0"
-
-            if method == "TableWalkThrough":
-
-                # creates empty rule set
-                size = self.k ** (2 * self.r + 1)
-                delta = np.zeros(size, dtype=int)
-
-                # amount of rules flipped
-                flip_size = int(langton * size)
-
-                for i in range(flip_size):
-                    # gives indices of all zeros in the rule set
-                    ind_list = [i for i, e in enumerate(delta) if e == 0]
-
-                    # selects random index from the list of indices
-                    ind = np.random.randint(len(ind_list))
-
-                    # flips the zero with that index to another value between 1 and k
-                    delta[ind_list[ind]] = np.random.randint(self.k - 1) + 1
-
-                # make string from rule
-                rule_string = ""
-
-                for item in delta:
-                    rule_string += str(item)
-
-                # convert string to decimal rule number
-                rule_number = int(rule_string, self.k)
-                self.rule = rule_number
-
-            if method == "RandomTable":
-
-                delta = np.zeros(self.k ** (2 * self.r + 1), dtype=int)
-                for i in range(len(delta)):
-                    g = np.random.rand()
-                    if g > langton:
-                        # quiescent state is set to 0
-                        delta[i] = int(0)
-                    else:
-                        # range from 1 to k so the quiescent state 0 is never assigned
-                        delta[i] = np.random.randint(1, self.k)
-
-                # make string from rule
-                rule_string = ""
-
-                for item in delta:
-                    rule_string += str(item)
-
-                # convert string to decimal rule number
-                rule_number = int(rule_string, self.k)
-                self.rule = rule_number
-
-        except:
-            self.langton = "-"
-            print("Give Langton parameter between 0 and 1")
-
-        self.build_rule_set()
-
-    def determine_langton(self):
-        """calculates the langton paramter of the current rule based on
-        how many local configurations leed to zero."""
-        self.build_rule_set()
-        # gets all zeroes from rule set list
-        zeros = np.where(self.rule_set == 0)
-        # calculates langton parameter
-        self.langton = 1 - len(zeros[0]) / len(self.rule_set)
 
     def check_rule(self, inp):
         """Returns the new state based on the input states.
@@ -195,8 +110,6 @@ class CASim(Model):
         self.config = np.zeros([self.height, self.width], dtype=int)
         self.config[0, :] = self.setup_initial_row()
         self.local_config_numbers = []
-        if self.langton != "-":
-            self.build_langton_rule_set("TableWalkThrough")
         self.build_rule_set()
 
     def draw(self):
@@ -218,74 +131,9 @@ class CASim(Model):
         plt.axis("image")
         plt.title("t = %d" % self.t)
 
-    def find_cycle_length(self):
-        """Find cycle length by checking if last rule occurs before in the configuration."""
-
-        # if no periodicity is found, the height of the configuration is defined to be the cycle length.
-        self.cycle_length = self.height
-
-        # start comparing the last row to the second to last row.
-        i = self.height - 2
-
-        # periodicity is False until proven True
-        periodic = False
-        while periodic == False and i >= 0:
-            # check if rows are the same
-            if list(self.config[-1]) == list(self.config[i]):
-                self.cycle_length = self.height - 1 - i
-                periodic = True
-            # update row number to check
-            i -= 1
-
-    def check_homogeneity(self):
-        """Check homogeneity of the configuration by checking if the last two rows consist of all the same values."""
-
-        # check if the configuration is homogeneous.
-        self.homogeneous = all(
-            x == self.config[-1, 0]
-            for x in np.reshape(self.config[-2:], [2 * self.config.shape[1], 1])
-        )
-
-    def calculate_Shannon(self):
-        """calculates the shannon entropy by computing the repetition of cells or local configurations in a row,
-        or by the repetition of rows in the total configuration."""
-
-        # calculate cell entropy
-        ent = 0
-        for row in self.config:
-            for i in range(self.k):
-                value_list = [x for x in row if x == i]
-                p = len(value_list) / len(row)
-                if p != 0:
-                    ent -= p * np.log(p) / np.log(self.k)
-
-        ent_gem = ent / len(self.config)
-        self.cell_Shannon = ent_gem
-
-        # calculate row entropy
-        rows, counts = np.unique(self.config, axis=0, return_counts=True)
-        probabilities = counts / len(self.config)
-        self.row_Shannon = np.sum(
-            -probabilities * np.log(probabilities) / np.log(self.k)
-        )
-
-        # calculate local configuration entropy after initial row
-        configs, counts = np.unique(self.local_config_numbers, return_counts=True)
-        probabilities = counts / len(self.local_config_numbers)
-        self.local_config_Shannon = np.sum(
-            -probabilities * np.log(probabilities) / np.log(self.k)
-        )
-
     def calculate_car_flow(self):
-        print("car flow")
-        print(self.config[1:, -1])
-        print(self.config[:-1, -1])
-
-        changes = np.where(self.config[1:, -1] != self.config[:-1, -1])
-        print(changes[0].size)
-
-        self.car_flow = changes[0].size / self.config.shape[0]
-        print(self.car_flow)
+        # car flow should be calculated here
+        pass
 
     def step(self):
         """Performs a single step of the simulation by advancing time (and thus
@@ -295,12 +143,6 @@ class CASim(Model):
         # update model attributes at the end of a run
         if self.t >= self.height:
             # update cycle length and homogeneity
-            self.find_cycle_length()
-            self.check_homogeneity()
-
-            # update Shannon entropy of the cells and of the rows
-            self.calculate_Shannon()
-            self.determine_langton()
 
             self.calculate_car_flow()
 
@@ -333,7 +175,7 @@ if __name__ == "__main__":
     if paramsimulate == True:
 
         # determine parameter space to simulate
-        param_space = {"langton": list(np.linspace(0, 1, 100))}
+        param_space = {"": list(0)}
 
         # set the simulation parameters
         sim.width = 50
@@ -345,15 +187,9 @@ if __name__ == "__main__":
             sim,
             N_sim,
             param_space=param_space,
-            measure_attrs=[
-                "rule",
-                "langton",
-                "cell_Shannon",
-                "row_Shannon",
-                "local_config_Shannon",
-            ],
+            measure_attrs=["rule", "car_flow"],
             measure_interval=0,
-            csv_base_filename="ShannonLangton_" + str(N_sim),
+            csv_base_filename="Car_flow" + str(N_sim),
         )
 
     # start up GUI
