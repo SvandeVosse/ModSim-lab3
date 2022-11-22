@@ -96,6 +96,12 @@ def paramsweep(
     measurements = [[] for a in measure_attrs]
     # Iterate over all combinations of parameter values
     for vals in combinations:
+        print(
+            [
+                str(param_names[i]) + "=" + str(list(vals)[i])
+                for i in range(len(param_names))
+            ][0]
+        )
         # Set current parameter values to the model
         for pn, pv in zip(param_names, vals):
             if pn not in model.params:

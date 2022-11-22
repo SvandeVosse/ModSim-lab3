@@ -30,7 +30,7 @@ class CASim(Model):
         self.make_param("k", 2)
         self.make_param("width", 50)
         self.make_param("height", 50)
-        self.make_param("rule", 30, setter=self.setter_rule)
+        self.make_param("rule", 184, setter=self.setter_rule)
         self.make_param("density", 0.5)
 
         self.car_flow = None  # mean car flow calculated at the end of the simulation
@@ -132,8 +132,11 @@ class CASim(Model):
         plt.title("t = %d" % self.t)
 
     def calculate_car_flow(self):
-        # car flow should be calculated here
-        pass
+        # car flow calculated by counting how often the value of the first cell changes from 0 to 1
+        car_entries = np.where(
+            self.config[1:, 0] - self.config[:-1, 0] == np.ones_like(self.config[1:, 0])
+        )[0]
+        self.car_flow = car_entries.size / (self.height - 1)
 
     def step(self):
         """Performs a single step of the simulation by advancing time (and thus
@@ -143,7 +146,6 @@ class CASim(Model):
         # update model attributes at the end of a run
         if self.t >= self.height:
             # update cycle length and homogeneity
-
             self.calculate_car_flow()
 
             return True
@@ -169,27 +171,38 @@ if __name__ == "__main__":
     from pyics import GUI
     from pyics import paramsweep
 
+    import matplotlib.pyplot as plt
+
+    # plot configurations for densities 0.4 and 0.9
+    for density in [0.4, 0.9]:
+        sim.density = density
+        sim.reset()
+        while sim.t < sim.height:
+            sim.step()
+        sim.draw()
+        plt.savefig(f"density_{str(density)}.png")
+
     # indicate if parameter measurements should be run
-    paramsimulate = False
+    paramsimulate = True
 
     if paramsimulate == True:
 
         # determine parameter space to simulate
-        param_space = {"": list(0)}
+        param_space = {"density": list(np.linspace(0, 1, 20))}
 
         # set the simulation parameters
         sim.width = 50
-        sim.height = 4 * sim.width
-        N_sim = 100
+        sim.height = 5
+        N_sim = 3
 
         # perform simulations and save measurements on given csv base filename
         measurements = paramsweep(
             sim,
             N_sim,
             param_space=param_space,
-            measure_attrs=["rule", "car_flow"],
+            measure_attrs=["car_flow"],
             measure_interval=0,
-            csv_base_filename="Car_flow" + str(N_sim),
+            csv_base_filename="Car_flow_" + str(N_sim),
         )
 
     # start up GUI
