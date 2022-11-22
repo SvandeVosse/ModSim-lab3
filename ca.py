@@ -187,23 +187,27 @@ if __name__ == "__main__":
 
     if paramsimulate == True:
 
-        # determine parameter space to simulate
-        param_space = {"density": list(np.linspace(0, 1, 20))}
+        for i in range(10):
 
-        # set the simulation parameters
-        sim.width = 50
-        sim.height = 5
-        N_sim = 3
+            # determine parameter space to simulate
+            param_space = {
+                "density": list(np.linspace(0, 1, 20)),
+                "height": [5, 20, 100, 500, 1000, 2000],
+            }
 
-        # perform simulations and save measurements on given csv base filename
-        measurements = paramsweep(
-            sim,
-            N_sim,
-            param_space=param_space,
-            measure_attrs=["car_flow"],
-            measure_interval=0,
-            csv_base_filename="Car_flow_" + str(N_sim),
-        )
+            # set the simulation parameters
+            sim.width = 50
+            N_sim = 10
+
+            # perform simulations and save measurements on given csv base filename
+            measurements = paramsweep(
+                sim,
+                N_sim,
+                param_space=param_space,
+                measure_attrs=["car_flow"],
+                measure_interval=0,
+                csv_base_filename=str(i) + "_Car_flow_R" + str(N_sim),
+            )
 
     # start up GUI
     cx = GUI(sim)
