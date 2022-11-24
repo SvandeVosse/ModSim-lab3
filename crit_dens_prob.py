@@ -18,7 +18,9 @@ def gaussian(x, amplitude, center, width):
     return amplitude * np.exp(-((x - center) ** 2) / width)
 
 
-def triangle(x, l_slope, r_slope, center, amplitude):
+def triangle(x, center, amplitude):
+    l_slope = amplitude / center
+    r_slope = -1 * (amplitude / (1 - center))
     y = [
         amplitude - (l_slope * (center - i))
         if i <= center
@@ -32,10 +34,11 @@ mod_gauss = Model(gaussian)
 mod_tri = Model(triangle)
 
 # set initial parameters
-params_gauss = mod_gauss.make_params(center=0.5, amplitude=0.5, width=0.5)
+params_gauss = mod_gauss.make_params(center=0.1, amplitude=0.25, width=0.5)
 mod_gauss.set_param_hint("width", min=0, max=1)
 
-params_tri = mod_tri.make_params(l_slope=0.5, r_slope=-0.5, center=0.5, amplitude=0.25)
+params_tri = mod_tri.make_params(center=0.1, amplitude=0.25)
+mod_tri.set_param_hint("center", min=0, max=1)
 
 
 # create dictionary for all heights to put in all critical densities
@@ -91,7 +94,7 @@ for dummy_var in range(10):
         fits = (fit_gauss, fit_tri)
 
         # plot once for every height
-        if dummy_var == 0:
+        if dummy_var == 1:
 
             fig, axes = plt.subplots(1, 2, figsize=[12, 7])
 
@@ -107,10 +110,23 @@ for dummy_var in range(10):
                     fmt="o",
                 )
                 ax.plot(
-                    mean_data["density"], fits[i].init_fit, "--", label="initial fit"
+                    mean_data["density"],
+                    fits[i].init_fit,
+                    "--",
+                    label="initial fit",
+                    color="black",
                 )
-                ax.plot(mean_data["density"], fits[i].best_fit, "-", label="best fit")
+                ax.plot(
+                    mean_data["density"],
+                    fits[i].best_fit,
+                    "-",
+                    label="best fit",
+                    color="black",
+                )
                 ax.set_title(f"Fit for height {height}")
+                ax.grid()
+                ax.set_xlabel(r"Initial car density $\rho$ [$L^{-1}$]")
+                ax.set_ylabel("Car flow [$t^{-1}$]")
                 ax.legend()
 
                 i += 1
@@ -126,6 +142,8 @@ for dummy_var in range(10):
                 dics[i]["height_list_" + str(height)].append("incorrect")
 
 # print(dic)
+prob_gauss = []
+prob_tri = []
 
 for item in heights:
     # print(dic["height_list_" + str(item)].count("correct"))
@@ -134,6 +152,7 @@ for item in heights:
         dic_gauss["height_list_" + str(item)]
     )
     probability = probability * 100
+    prob_gauss.append(probability)
     print(
         f"The probability of finding the correct critical density based on the Gauss fit for {item} time steps is {probability} %"
     )
@@ -142,6 +161,27 @@ for item in heights:
         dic_tri["height_list_" + str(item)]
     )
     probability = probability * 100
+    prob_tri.append(probability)
     print(
         f"The probability of finding the correct critical density based on the Triangle fit for {item} time steps is {probability} %"
     )
+
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=[10, 5])
+
+ax1.plot(np.unique(heights), prob_gauss, "black", marker="o")
+ax2.plot(np.unique(heights), prob_tri, "black", marker="o")
+ax1.set_title("Gaussian fit")
+ax2.set_title("Triangle fit")
+
+for ax in (ax1, ax2):
+    ax.set_xlabel("Number of time steps T")
+    ax.set_ylabel(r"Probability of finding the correct $\rho_{crit}$")
+    ax.grid()
+    ax.set_ylim(bottom=0, top=105)
+    ax.set_xscale("log")
+
+
+plt.suptitle(
+    r"Probabilities of finding the correct critical density $\rho_{crit}$ as a function of number of time steps T"
+)
+plt.savefig("critical_density_prob")
