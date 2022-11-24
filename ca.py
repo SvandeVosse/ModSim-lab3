@@ -33,7 +33,9 @@ class CASim(Model):
         self.make_param("rule", 184, setter=self.setter_rule)
         self.make_param("density", 0.5)
 
-        self.car_flow = None  # mean car flow calculated at the end of the simulation
+        self.car_flow = (
+            None  # mean car flow per unit time calculated at the end of the simulation
+        )
 
     def setter_rule(self, val):
         """Setter for the rule parameter, clipping its value between 0 and the
@@ -145,7 +147,8 @@ class CASim(Model):
 
         # update model attributes at the end of a run
         if self.t >= self.height:
-            # update cycle length and homogeneity
+
+            # update car flow for run
             self.calculate_car_flow()
 
             return True
@@ -187,6 +190,7 @@ if __name__ == "__main__":
 
     if paramsimulate == True:
 
+        # run through the simulation a multiple number of times
         for i in range(10):
 
             # determine parameter space to simulate
@@ -199,7 +203,7 @@ if __name__ == "__main__":
             sim.width = 50
             N_sim = 10
 
-            # perform simulations and save measurements on given csv base filename
+            # perform simulations and save measurements for each simulation run on given csv base filename
             measurements = paramsweep(
                 sim,
                 N_sim,
