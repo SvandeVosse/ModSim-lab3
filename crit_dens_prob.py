@@ -18,17 +18,35 @@ def gaussian(x, amplitude, center, width):
     return amplitude * np.exp(-((x - center) ** 2) / width)
 
 
-mod = Model(gaussian)
+def triangle(x, l_slope, r_slope, center, amplitude):
+    y = [
+        amplitude - (l_slope * (center - i))
+        if i <= center
+        else amplitude - (r_slope * (center - i))
+        for i in x
+    ]
+    return y
+
+
+mod_gauss = Model(gaussian)
+mod_tri = Model(triangle)
 
 # set initial parameters
-params = mod.make_params(center=0, amplitude=0.5, width=0.5)
+params_gauss = mod_gauss.make_params(center=0.5, amplitude=0.5, width=0.5)
+mod_gauss.set_param_hint("width", min=0, max=1)
+
+params_tri = mod_tri.make_params(l_slope=0.5, r_slope=-0.5, center=0.5, amplitude=0.25)
+
 
 # create dictionary for all heights to put in all critical densities
 heights = [5, 20, 100, 500, 1000, 2000]
-dic = {}
+dic_gauss = {}
+dic_tri = {}
 for item in heights:
-    dic["height_list_" + str(item)] = []
+    dic_gauss["height_list_" + str(item)] = []
+    dic_tri["height_list_" + str(item)] = []
 
+dics = (dic_gauss, dic_tri)
 
 for dummy_var in range(10):
     # Read the csv files
@@ -51,31 +69,79 @@ for dummy_var in range(10):
                 density_data["car_flow"].mean(),
                 density_data["car_flow"].std() / np.sqrt(len(density_data)),
             ]
+
         # Perform a gaussian fit on the data to find the center of the distribution
-        fit = mod.fit(mean_data["mean_car_flow"], params, x=mean_data["density"])
+        fit_gauss = mod_gauss.fit(
+            mean_data["mean_car_flow"],
+            params_gauss,
+            x=mean_data["density"],
+            weights=1 / mean_data["err_car_flow"],
+            nan_policy="omit",
+        )
 
-        # plt.plot(mean_data["density"], mean_data["mean_car_flow"], "o")
-        # plt.plot(mean_data["density"], fit.init_fit, "--", label="initial fit")
-        # plt.plot(mean_data["density"], fit.best_fit, "-", label="best fit")
-        # plt.legend()
-        # plt.show()
+        # Perform a triangle fit on the data to find the center of the distribution
+        fit_tri = mod_tri.fit(
+            mean_data["mean_car_flow"],
+            params_tri,
+            x=mean_data["density"],
+            weights=1 / mean_data["err_car_flow"],
+            nan_policy="omit",
+        )
 
-        print(fit.params["center"].value)
+        fits = (fit_gauss, fit_tri)
 
-        if 0.45 <= fit.params["center"].value <= 0.55:
-            dic["height_list_" + str(height)].append("correct")
-        else:
-            dic["height_list_" + str(height)].append("incorrect")
+        # plot once for every height
+        if dummy_var == 0:
+
+            fig, axes = plt.subplots(1, 2, figsize=[12, 7])
+
+            i = 0
+
+            for ax in axes:
+
+                ax.errorbar(
+                    mean_data["density"],
+                    mean_data["mean_car_flow"],
+                    yerr=mean_data["err_car_flow"],
+                    capsize=4,
+                    fmt="o",
+                )
+                ax.plot(
+                    mean_data["density"], fits[i].init_fit, "--", label="initial fit"
+                )
+                ax.plot(mean_data["density"], fits[i].best_fit, "-", label="best fit")
+                ax.set_title(f"Fit for height {height}")
+                ax.legend()
+
+                i += 1
+
+            plt.show()
+
+        # print(fit.params["center"].value)
+
+        for i in range(len(dics)):
+            if 0.45 <= fits[i].params["center"].value <= 0.55:
+                dics[i]["height_list_" + str(height)].append("correct")
+            else:
+                dics[i]["height_list_" + str(height)].append("incorrect")
 
 # print(dic)
 
 for item in heights:
     # print(dic["height_list_" + str(item)].count("correct"))
 
-    probability = dic["height_list_" + str(item)].count("correct") / len(
-        dic["height_list_" + str(item)]
+    probability = dic_gauss["height_list_" + str(item)].count("correct") / len(
+        dic_gauss["height_list_" + str(item)]
     )
     probability = probability * 100
     print(
-        f"The probability of finding the correct critical density for {item} time steps is {probability} %"
+        f"The probability of finding the correct critical density based on the Gauss fit for {item} time steps is {probability} %"
+    )
+
+    probability = dic_tri["height_list_" + str(item)].count("correct") / len(
+        dic_tri["height_list_" + str(item)]
+    )
+    probability = probability * 100
+    print(
+        f"The probability of finding the correct critical density based on the Triangle fit for {item} time steps is {probability} %"
     )
